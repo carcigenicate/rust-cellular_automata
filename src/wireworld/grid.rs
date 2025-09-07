@@ -45,7 +45,6 @@ impl Grid {
 
     pub fn get_moore_neighborhood_around(&self, center_x: usize, center_y: usize) -> impl Iterator<Item = CellType> {
         get_moore_neighborhood_iterator(center_x, center_y, self.get_width(), self.get_height()).map(move |(x, y)| {
-            // println!("Moore neighborhood around at ({}, {}): ({}, {})", center_x, center_y, x, y);
             self.get_cell(x, y)
         })
     }
@@ -57,7 +56,7 @@ pub struct TwoDimensionRangeIterator {
 
     min_x: usize,
     max_x: usize,
-    min_y: usize,
+
     max_y: usize,
 
     done: bool,
@@ -71,7 +70,7 @@ impl TwoDimensionRangeIterator {
 
             min_x: min_x,
             max_x: max_x,
-            min_y: min_y,
+
             max_y: max_y,
 
             done: false,
@@ -95,7 +94,7 @@ impl Iterator for TwoDimensionRangeIterator {
             self.current_y += 1;
         }
 
-        if (self.current_y > self.max_y) {
+        if self.current_y > self.max_y {
             self.done = true;
         }
 
@@ -108,8 +107,6 @@ fn get_moore_neighborhood_iterator(x: usize, y: usize, width: usize, height: usi
     let max_x = x.saturating_add(1).clamp(0, width - 1);
     let min_y = y.saturating_sub(1).clamp(0, height - 1);
     let max_y = y.saturating_add(1).clamp(0, height - 1);
-
-    // println!("Bounds: x ({min_x} {max_x}) y ({min_y} {max_y}) - Around: ({x} {y}) - Dimensions: ({width}, {height})");
 
     TwoDimensionRangeIterator::new(min_x, max_x, min_y, max_y).filter_map(move |current| {
         if current.0 == x && current.1 == y {

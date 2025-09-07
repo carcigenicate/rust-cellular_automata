@@ -1,4 +1,3 @@
-use std::cmp::PartialEq;
 use std::collections::HashSet;
 use std::fmt::{Debug, Formatter};
 use std::mem::swap;
@@ -6,8 +5,6 @@ use std::thread::sleep;
 use std::time::Duration;
 use crate::wireworld::grid::{CellType, Grid};
 use crate::wireworld::grid::CellType::{Conductor, ElectronHead};
-
-type AdvanceCellF = dyn Fn(&Grid, usize, usize) -> CellType;
 
 pub struct Environment {
     read_grid: Grid,
@@ -30,7 +27,7 @@ impl Environment {
     }
 
     pub fn new_empty(width: usize, height: usize) -> Environment {
-        Self::new(width, height, |x, y| CellType::Empty)
+        Self::new(width, height, |_x, _y| CellType::Empty)
     }
 
     fn swap_grids(&mut self) -> () {
@@ -53,7 +50,7 @@ impl Environment {
         let (width, height) = self.get_dimensions();
 
         for (x, y, cell_type) in cells {
-            if x >= 0 && x < width && y >= 0 && y < height {
+            if x < width && y < height {
                 self.read_grid.set_cell(x, y, cell_type);
             } else {
                 eprintln!("Could not set cell at {}, {}. Dimensions: ({}, {})", x, y, width, height);
@@ -64,7 +61,6 @@ impl Environment {
     pub fn advance(&mut self) {
         for y in 0..self.read_grid.get_height() {
             for x in 0..self.read_grid.get_width() {
-                // println!("\t\tChecking {}, {}: {:?}", x, y, self.get_cell(x, y));
                 let next_cell = match self.get_cell(x, y) {
                     CellType::Empty => CellType::Empty,
                     CellType::ElectronHead => CellType::ElectronTail,
@@ -76,7 +72,6 @@ impl Environment {
                                 found_heads += 1;
                             }
                         }
-                        // println!("\tFound heads: {}", found_heads);
 
                         if found_heads == 1 || found_heads == 2 { ElectronHead } else { Conductor }
                     },
@@ -125,5 +120,107 @@ impl Debug for Environment {
         }
 
         write!(f, "{}", output)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    #[test]
+    fn test_basic_electron_head_basic_propagation() {
+        let mut env = Environment::new_empty(5, 1);
+        env.bulk_set_readable(vec![
+            (0, 0, CellType::ElectronHead),
+            (1, 0, CellType::Conductor),
+            (2, 0, CellType::Conductor),
+            (3, 0, CellType::Conductor),
+            (4, 0, CellType::Conductor),
+        ]);
+
+        env.advance();
+
+        assert_eq!(env.read_grid.get_cell(0, 0), CellType::ElectronTail);
+        assert_eq!(env.read_grid.get_cell(1, 0), CellType::ElectronHead);
+        assert_eq!(env.read_grid.get_cell(2, 0), CellType::Conductor);
+        assert_eq!(env.read_grid.get_cell(3, 0), CellType::Conductor);
+        assert_eq!(env.read_grid.get_cell(4, 0), CellType::Conductor);
+
+        env.advance();
+
+        assert_eq!(env.read_grid.get_cell(0, 0), CellType::Conductor);
+        assert_eq!(env.read_grid.get_cell(1, 0), CellType::ElectronTail);
+        assert_eq!(env.read_grid.get_cell(2, 0), CellType::ElectronHead);
+        assert_eq!(env.read_grid.get_cell(3, 0), CellType::Conductor);
+        assert_eq!(env.read_grid.get_cell(4, 0), CellType::Conductor);
+
+        env.advance();
+
+        assert_eq!(env.read_grid.get_cell(0, 0), CellType::Conductor);
+        assert_eq!(env.read_grid.get_cell(1, 0), CellType::Conductor);
+        assert_eq!(env.read_grid.get_cell(2, 0), CellType::ElectronTail);
+        assert_eq!(env.read_grid.get_cell(3, 0), CellType::ElectronHead);
+        assert_eq!(env.read_grid.get_cell(4, 0), CellType::Conductor);
+
+        env.advance();
+
+        assert_eq!(env.read_grid.get_cell(0, 0), CellType::Conductor);
+        assert_eq!(env.read_grid.get_cell(1, 0), CellType::Conductor);
+        assert_eq!(env.read_grid.get_cell(2, 0), CellType::Conductor);
+        assert_eq!(env.read_grid.get_cell(3, 0), CellType::ElectronTail);
+        assert_eq!(env.read_grid.get_cell(4, 0), CellType::ElectronHead);
+    }
+
+    #[test]
+    fn test_basic_electron_head_corner_propagation() {
+        let mut env = Environment::new_empty(5, 3);
+        env.bulk_set_readable(vec![
+            (0, 0, CellType::ElectronHead),
+            (1, 0, CellType::Conductor),
+            (2, 0, CellType::Conductor),
+            (2, 1, CellType::Conductor),
+            (2, 2, CellType::Conductor),
+            (1, 2, CellType::Conductor),
+            (0, 2, CellType::Conductor),
+        ]);
+
+        env.advance();
+
+        assert_eq!(env.read_grid.get_cell(0, 0), CellType::ElectronTail);
+        assert_eq!(env.read_grid.get_cell(1, 0), CellType::ElectronHead);
+        assert_eq!(env.read_grid.get_cell(2, 0), CellType::Conductor);
+        assert_eq!(env.read_grid.get_cell(2, 1), CellType::Conductor);
+        assert_eq!(env.read_grid.get_cell(2, 2), CellType::Conductor);
+        assert_eq!(env.read_grid.get_cell(1, 2), CellType::Conductor);
+        assert_eq!(env.read_grid.get_cell(0, 2), CellType::Conductor);
+
+        env.advance();
+
+        assert_eq!(env.read_grid.get_cell(0, 0), CellType::Conductor);
+        assert_eq!(env.read_grid.get_cell(1, 0), CellType::ElectronTail);
+        assert_eq!(env.read_grid.get_cell(2, 0), CellType::ElectronHead);
+        assert_eq!(env.read_grid.get_cell(2, 1), CellType::ElectronHead);
+        assert_eq!(env.read_grid.get_cell(2, 2), CellType::Conductor);
+        assert_eq!(env.read_grid.get_cell(1, 2), CellType::Conductor);
+        assert_eq!(env.read_grid.get_cell(0, 2), CellType::Conductor);
+
+        env.advance();
+
+        assert_eq!(env.read_grid.get_cell(0, 0), CellType::Conductor);
+        assert_eq!(env.read_grid.get_cell(1, 0), CellType::Conductor);
+        assert_eq!(env.read_grid.get_cell(2, 0), CellType::ElectronTail);
+        assert_eq!(env.read_grid.get_cell(2, 1), CellType::ElectronTail);
+        assert_eq!(env.read_grid.get_cell(2, 2), CellType::ElectronHead);
+        assert_eq!(env.read_grid.get_cell(1, 2), CellType::ElectronHead);
+        assert_eq!(env.read_grid.get_cell(0, 2), CellType::Conductor);
+
+        env.advance();
+
+        assert_eq!(env.read_grid.get_cell(0, 0), CellType::Conductor);
+        assert_eq!(env.read_grid.get_cell(1, 0), CellType::Conductor);
+        assert_eq!(env.read_grid.get_cell(2, 0), CellType::Conductor);
+        assert_eq!(env.read_grid.get_cell(2, 1), CellType::Conductor);
+        assert_eq!(env.read_grid.get_cell(2, 2), CellType::ElectronTail);
+        assert_eq!(env.read_grid.get_cell(1, 2), CellType::ElectronTail);
+        assert_eq!(env.read_grid.get_cell(0, 2), CellType::ElectronHead);
     }
 }
