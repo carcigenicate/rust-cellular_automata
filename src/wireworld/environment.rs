@@ -1,4 +1,3 @@
-use std::collections::HashSet;
 use std::fmt::{Debug, Formatter};
 use std::mem::swap;
 use std::thread::sleep;
@@ -9,8 +8,6 @@ use crate::wireworld::grid::CellType::{Conductor, ElectronHead};
 pub struct Environment {
     read_grid: Grid,
     write_grid: Grid,
-
-    active_cells: HashSet<(usize, usize)>,
 }
 
 impl Environment {
@@ -21,8 +18,6 @@ impl Environment {
         Environment {
             read_grid: read_grid,
             write_grid: write_grid,
-
-            active_cells: HashSet::new(),
         }
     }
 
@@ -34,15 +29,15 @@ impl Environment {
         swap(&mut self.read_grid, &mut self.write_grid);
     }
 
-    fn get_cell(&self, x: usize, y: usize) -> CellType {
+    pub fn get_cell(&self, x: usize, y: usize) -> CellType {
         self.read_grid.get_cell(x, y)
     }
 
-    fn set_cell(&mut self, x: usize, y: usize, cell_type: CellType) {
+    pub fn set_cell(&mut self, x: usize, y: usize, cell_type: CellType) {
         self.write_grid.set_cell(x, y, cell_type);
     }
 
-    fn get_dimensions(&self) -> (usize, usize) {
+    pub fn get_dimensions(&self) -> (usize, usize) {
         (self.read_grid.get_width(), self.read_grid.get_height())
     }
 
