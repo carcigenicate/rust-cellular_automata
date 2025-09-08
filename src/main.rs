@@ -15,27 +15,33 @@ fn main() {
     let mut env = wireworld::environment::Environment::new_empty(width, height);
 
     for x in 1..width {
-        env.bulk_set_readable(vec![(x, 1, CellType::Conductor)]);
-        env.bulk_set_readable(vec![(x, 2, CellType::Conductor)]);
+        env.bulk_set_readable(vec![
+            (x, 1, CellType::Conductor), // Top row
+            (x, 2, CellType::Conductor),
 
-        env.bulk_set_readable(vec![(x, height - 1, CellType::Conductor)]);
-        env.bulk_set_readable(vec![(x, height - 2, CellType::Conductor)]);
+            (x, height / 2, CellType::Conductor),
+
+            (x, height - 1, CellType::Conductor),  // Bottom row
+            (x, height - 2, CellType::Conductor)
+        ]);
     }
 
     for y in 1..height {
-        env.bulk_set_readable(vec![(1, y, CellType::Conductor)]);
+        env.bulk_set_readable(vec![
+            (1, y, CellType::Conductor),  // Left column
 
-        env.bulk_set_readable(vec![(width - 1, y, CellType::Conductor)]);
+            (width - 1, y, CellType::Conductor),  // Right column
+        ]);
     }
 
     env.bulk_set_readable(vec![(5, 1, CellType::ElectronHead)]);
-    env.bulk_set_readable(vec![(5, 2, CellType::ElectronHead)]);
     env.bulk_set_readable(vec![(4, 1, CellType::ElectronTail)]);
+    env.bulk_set_readable(vec![(5, 2, CellType::ElectronHead)]);
     env.bulk_set_readable(vec![(4, 2, CellType::ElectronTail)]);
 
     env.bulk_set_readable(vec![(5, height - 1, CellType::ElectronHead)]);
-    env.bulk_set_readable(vec![(5, height - 2, CellType::ElectronHead)]);
     env.bulk_set_readable(vec![(6, height - 1, CellType::ElectronTail)]);
+    env.bulk_set_readable(vec![(5, height - 2, CellType::ElectronHead)]);
     env.bulk_set_readable(vec![(6, height - 2, CellType::ElectronTail)]);
 
     let start_time = Instant::now();
